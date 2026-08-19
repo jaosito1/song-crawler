@@ -44,7 +44,7 @@ func getAlbumData(n *html.Node) AlbumData {
 
 			case "streaming-links":
 				for v := range c.Descendants() {
-					if v.Type == html.ElementNode && v.DataAtom == atom.A {
+					if isTag(v, atom.A) {
 						raw := getAttribute(v, "href")
 
 						u, err := url.Parse(raw)
@@ -71,7 +71,7 @@ func getAlbumData(n *html.Node) AlbumData {
 
 				spanNode := findByTag(c, atom.Span)
 				for v := range spanNode.Descendants() {
-					if v.Type == html.ElementNode && v.DataAtom == atom.A {
+					if isTag(v, atom.A) {
 						genres = append(genres, getTextValue(v))
 					}
 				}
