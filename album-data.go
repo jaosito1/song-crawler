@@ -29,13 +29,21 @@ func (d AlbumData) Csv() []string {
 		d.Title,
 		d.Artist,
 		d.Year,
-		d.SpotifyUrl.String(),
-		d.YoutubeUrl.String(),
-		d.AppleUrl.String(),
+		getUrlString(d.SpotifyUrl),
+		getUrlString(d.YoutubeUrl),
+		getUrlString(d.AppleUrl),
 		genres,
 	}
 
 	return row
+}
+
+func getUrlString(u *url.URL) string {
+	if u != nil {
+		return u.String()
+	}
+
+	return ""
 }
 
 func getAlbumData(n *html.Node) AlbumData {
