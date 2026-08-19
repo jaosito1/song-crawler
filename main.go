@@ -79,7 +79,7 @@ func startWorkers(urlList []string, count int) error {
 		return fmt.Errorf("failed to create csv file: %w", err)
 	}
 
-	const WORKER_COUNT = 2
+	const WORKER_COUNT = 5
 
 	for w := 1; w <= WORKER_COUNT; w++ {
 		wg.Add(1)
@@ -98,6 +98,7 @@ func startWorkers(urlList []string, count int) error {
 
 	for v := range data {
 		file.WriteLine(v.Csv())
+		fmt.Printf("Wrote '%v' to output.csv\n", v.Title)
 	}
 
 	return nil
