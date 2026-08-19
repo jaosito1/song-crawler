@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
+	"time"
 
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -34,7 +36,6 @@ func parseAlbumUrls(doc *html.Node) []string {
 	return res
 }
 
-
 func fetchAndParse(url string) (*html.Node, error) {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -50,19 +51,49 @@ func fetchAndParse(url string) (*html.Node, error) {
 	return doc, nil
 }
 
-func fetchAlbumData(url string) {
-	doc, err := fetchAndParse(BASE_URL + url)
-	if err != nil {
-		// ignore error or handle it (?)
+func fetchAlbumData(urls <-chan string, data chan<- AlbumData, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	for url := range urls {
+		doc, err := fetchAndParse(BASE_URL + url)
+		if err != nil {
+			// ignore error or handle it (?)
+		}
+
+		node := findByClass(doc, "album-info")
+		if node == nil {
+			log.Fatal("missing album-info node")
+		}
+
+		data <- getAlbumData(node)
+	}
+}
+
+func startWorkers(urlList []string, count int) {
+	urls := make(chan string, count)
+	data := make(chan AlbumData, count)
+	var wg sync.WaitGroup
+
+	const WORKER_COUNT = 2
+
+	for w := 1; w <= WORKER_COUNT; w++ {
+		wg.Add(1)
+		go fetchAlbumData(urls, data, &wg)
 	}
 
-	node := findByClass(doc, "album-info")
-	if node == nil {
-		log.Fatal("missing album-info node")
+	for _, url := range urlList {
+		urls <- url
 	}
+	close(urls)
 
-	data := getAlbumData(node)
-	fmt.Printf("RETURNED ALBUM: %+v", data)
+	go func() {
+		wg.Wait()
+		close(data)
+	}()
+
+	for v := range data {
+		fmt.Printf("ALBUM: %+v\n", v)
+	}
 }
 
 func main() {
@@ -72,13 +103,23 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	fmt.Println("Parsing urls...")
 
 	urls := parseAlbumUrls(doc)
-	if len(urls) <= 0 {
+
+	count := len(urls)
+	if count <= 0 {
 		log.Fatal("empty url slice")
 	}
+	fmt.Printf("Found %v album urls!\n", count)
 
-	fmt.Printf("Found %v album urls!\n", len(urls))
+	start := time.Now()
+
+	fmt.Println("Retrieving album data...")
+	startWorkers(urls, count)
+
+	t := time.Now()
+	elapsed := t.Sub(start)
+
+	fmt.Printf("Process finished! Took %v seconds.", elapsed.Seconds())
 }
