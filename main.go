@@ -69,10 +69,15 @@ func fetchAlbumData(urls <-chan string, data chan<- AlbumData, wg *sync.WaitGrou
 	}
 }
 
-func startWorkers(urlList []string, count int) {
+func startWorkers(urlList []string, count int) error {
 	urls := make(chan string, count)
 	data := make(chan AlbumData, count)
 	var wg sync.WaitGroup
+
+	file, err := NewCsvFile()
+	if err != nil {
+		return fmt.Errorf("failed to create csv file: %w", err)
+	}
 
 	const WORKER_COUNT = 2
 
@@ -92,8 +97,10 @@ func startWorkers(urlList []string, count int) {
 	}()
 
 	for v := range data {
-		fmt.Printf("ALBUM: %+v\n", v)
+		file.WriteLine(v.Csv())
 	}
+
+	return nil
 }
 
 func main() {

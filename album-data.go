@@ -12,13 +12,30 @@ import (
 type AlbumData struct {
 	Title  string
 	Artist string
-	Year   int
+	Year   string
 
 	SpotifyUrl *url.URL
 	YoutubeUrl *url.URL
 	AppleUrl   *url.URL
 
 	Genres []string
+}
+
+func (d AlbumData) Csv() []string {
+	// We'll put genres in the format of 'blues-rock|heavy-metal' to avoid writing multiple CSV lines
+	genres := strings.Join(d.Genres, "|")
+
+	row := []string{
+		d.Title,
+		d.Artist,
+		d.Year,
+		d.SpotifyUrl.String(),
+		d.YoutubeUrl.String(),
+		d.AppleUrl.String(),
+		genres,
+	}
+
+	return row
 }
 
 func getAlbumData(n *html.Node) AlbumData {
@@ -36,10 +53,11 @@ func getAlbumData(n *html.Node) AlbumData {
 
 			case "album-year":
 				yearNode := findByTag(c, atom.A)
-				val, err := strconv.ParseInt(getTextValue(yearNode), 10, 0)
+				year := getTextValue(yearNode)
 
+				_, err := strconv.ParseInt(year, 10, 0)
 				if err == nil {
-					album.Year = int(val)
+					album.Year = year
 				}
 
 			case "streaming-links":
