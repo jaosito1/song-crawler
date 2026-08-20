@@ -12,9 +12,8 @@ type CsvFile struct {
 	file *os.File
 }
 
-func NewCsvFile() (*CsvFile, error) {
-	// TODO: delete file or display error if files already exists
-	f, err := os.Create("output.csv")
+func NewCsvFile(dst string) (*CsvFile, error) {
+	f, err := os.Create(dst)
 	if err != nil {
 		return nil, err
 	}

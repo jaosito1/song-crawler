@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -110,7 +111,23 @@ func startWorkerPool(urlList []string, urlCount int, file *CsvFile) {
 	fmt.Printf("Succesfully wrote %v records", counter)
 }
 
+type Args struct {
+	Output string
+}
+
+func loadArgs() Args {
+	a := Args{}
+
+	flag.StringVar(&a.Output, "output", "output.csv", "Output destination for parsed file")
+
+	flag.Parse()
+
+	return a
+}
+
 func main() {
+	args := loadArgs()
+
 	fmt.Println("Obtaining site data...")
 
 	doc, err := fetchAndParse(BASE_URL + "/albums")
@@ -128,7 +145,7 @@ func main() {
 
 	fmt.Printf("Found %v album urls!\n", len(urls))
 
-	file, err := NewCsvFile()
+	file, err := NewCsvFile(args.Output)
 	if err != nil {
 		log.Fatal("failed to create csv file: %w", err)
 	}
