@@ -13,6 +13,7 @@ type CsvFile struct {
 }
 
 func NewCsvFile() (*CsvFile, error) {
+	// TODO: delete file or display error if files already exists
 	f, err := os.Create("output.csv")
 	if err != nil {
 		return nil, err

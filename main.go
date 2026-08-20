@@ -51,57 +51,50 @@ func fetchAndParse(url string) (*html.Node, error) {
 	return doc, nil
 }
 
-func fetchAlbumData(urls <-chan string, data chan<- AlbumData, wg *sync.WaitGroup) {
+func worker(file *CsvFile, jobs <-chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	for url := range urls {
+	for url := range jobs {
 		doc, err := fetchAndParse(BASE_URL + url)
 		if err != nil {
-			// ignore error or handle it (?)
+			fmt.Printf("Error: %v", err)
+			continue
 		}
 
 		node := findByClass(doc, "album-info")
 		if node == nil {
-			log.Fatal("missing album-info node")
+			fmt.Printf("Error: %v", err)
+			continue
 		}
 
-		data <- getAlbumData(node)
+		album := getAlbumData(node)
+		if err := file.WriteLine(album.Csv()); err != nil {
+			fmt.Printf("Error: %v", err)
+			continue
+		}
+
+		fmt.Printf("Wrote '%v' to output.csv\n", album.Title)
 	}
 }
 
-func startWorkers(urlList []string, count int) error {
-	urls := make(chan string, count)
-	data := make(chan AlbumData, count)
+func startWorkerPool(urlList []string, urlCount int, file *CsvFile) {
 	var wg sync.WaitGroup
 
-	file, err := NewCsvFile()
-	if err != nil {
-		return fmt.Errorf("failed to create csv file: %w", err)
-	}
+	jobs := make(chan string, urlCount)
 
-	const WORKER_COUNT = 5
+	const WORKER_LIMIT = 20
 
-	for w := 1; w <= WORKER_COUNT; w++ {
+	for w := 1; w <= WORKER_LIMIT; w++ {
 		wg.Add(1)
-		go fetchAlbumData(urls, data, &wg)
+		go worker(file, jobs, &wg)
 	}
 
 	for _, url := range urlList {
-		urls <- url
+		jobs <- url
 	}
-	close(urls)
+	close(jobs)
 
-	go func() {
-		wg.Wait()
-		close(data)
-	}()
-
-	for v := range data {
-		file.WriteLine(v.Csv())
-		fmt.Printf("Wrote '%v' to output.csv\n", v.Title)
-	}
-
-	return nil
+	wg.Wait()
 }
 
 func main() {
@@ -114,17 +107,27 @@ func main() {
 	fmt.Println("Parsing urls...")
 
 	urls := parseAlbumUrls(doc)
+	urlCount := len(urls)
 
-	count := len(urls)
-	if count <= 0 {
+	if urlCount <= 0 {
 		log.Fatal("empty url slice")
 	}
-	fmt.Printf("Found %v album urls!\n", count)
+
+	fmt.Printf("Found %v album urls!\n", len(urls))
+
+	file, err := NewCsvFile()
+	if err != nil {
+		log.Fatal("failed to create csv file: %w", err)
+	}
+
+	for _, url := range urls {
+		fmt.Println(url)
+	}
 
 	start := time.Now()
 
 	fmt.Println("Retrieving album data...")
-	startWorkers(urls, count)
+	startWorkerPool(urls, urlCount, file)
 
 	t := time.Now()
 	elapsed := t.Sub(start)
