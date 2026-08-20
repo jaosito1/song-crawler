@@ -51,7 +51,7 @@ func fetchAndParse(url string) (*html.Node, error) {
 	return doc, nil
 }
 
-func worker(file *CsvFile, jobs <-chan string, wg *sync.WaitGroup) {
+func worker(file *CsvFile, jobs <-chan string, counter chan<- int, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for url := range jobs {
@@ -74,6 +74,7 @@ func worker(file *CsvFile, jobs <-chan string, wg *sync.WaitGroup) {
 		}
 
 		fmt.Printf("Wrote '%v' to output.csv\n", album.Title)
+		counter <- 1
 	}
 }
 
@@ -81,12 +82,13 @@ func startWorkerPool(urlList []string, urlCount int, file *CsvFile) {
 	var wg sync.WaitGroup
 
 	jobs := make(chan string, urlCount)
+	success := make(chan int, urlCount)
 
 	const WORKER_LIMIT = 20
 
 	for w := 1; w <= WORKER_LIMIT; w++ {
 		wg.Add(1)
-		go worker(file, jobs, &wg)
+		go worker(file, jobs, success, &wg)
 	}
 
 	for _, url := range urlList {
@@ -94,7 +96,18 @@ func startWorkerPool(urlList []string, urlCount int, file *CsvFile) {
 	}
 	close(jobs)
 
-	wg.Wait()
+	go func() {
+		// When all workers stop we stop counting succesfull tries
+		wg.Wait()
+		close(success)
+	}()
+
+	counter := 0
+	for range success {
+		counter++
+	}
+
+	fmt.Printf("Succesfully wrote %v records", counter)
 }
 
 func main() {
