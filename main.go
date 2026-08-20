@@ -132,7 +132,6 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to create csv file: %w", err)
 	}
-	defer file.Close()
 
 	start := time.Now()
 
@@ -143,4 +142,8 @@ func main() {
 	elapsed := t.Sub(start)
 
 	fmt.Printf("Process finished! Took %v seconds.", elapsed.Seconds())
+
+	if err := file.Close(); err != nil {
+		fmt.Printf("Warning: failed to close csv file, %v", err)
+	}
 }
