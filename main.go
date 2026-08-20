@@ -108,7 +108,7 @@ func startWorkerPool(urlList []string, urlCount int, file *CsvFile) {
 		counter++
 	}
 
-	fmt.Printf("Succesfully wrote %v records", counter)
+	fmt.Printf("Succesfully wrote %v records\n", counter)
 }
 
 type Args struct {
