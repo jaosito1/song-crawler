@@ -74,7 +74,7 @@ func worker(file *CsvFile, jobs <-chan string, counter chan<- int, wg *sync.Wait
 			continue
 		}
 
-		fmt.Printf("Wrote '%v' to output.csv\n", album.Title)
+		fmt.Printf("Wrote '%v' to file\n", album.Title)
 		counter <- 1
 	}
 }
@@ -145,7 +145,9 @@ func main() {
 
 	fmt.Printf("Found %v album urls!\n", len(urls))
 
-	file, err := NewCsvFile(args.Output)
+	header := []string{"title", "artist", "year", "spotify_url", "youtube_url", "apple_url", "genres"}
+
+	file, err := NewCsvFile(args.Output, header)
 	if err != nil {
 		log.Fatal("failed to create csv file: %w", err)
 	}

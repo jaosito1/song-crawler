@@ -12,13 +12,17 @@ type CsvFile struct {
 	file *os.File
 }
 
-func NewCsvFile(dst string) (*CsvFile, error) {
+func NewCsvFile(dst string, header []string) (*CsvFile, error) {
 	f, err := os.Create(dst)
 	if err != nil {
 		return nil, err
 	}
 
 	w := csv.NewWriter(f)
+
+	if err := w.Write(header); err != nil {
+		return nil, err
+	}
 
 	return &CsvFile{
 		wr:   w,
