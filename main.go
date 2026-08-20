@@ -119,10 +119,7 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to create csv file: %w", err)
 	}
-
-	for _, url := range urls {
-		fmt.Println(url)
-	}
+	defer file.Close()
 
 	start := time.Now()
 
